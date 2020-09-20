@@ -26,6 +26,9 @@ class BaseModule:
     def __init_subclass__(cls):
         jax.tree_util.register_pytree_node_class(cls)
     
+    def __call__(self, x):
+        return self.forward(x)
+    
     def _count_parameters(self):
         n_parameters = 0
         for name, var in vars(self).items():
@@ -36,6 +39,9 @@ class BaseModule:
             else:
                 pass
         return n_parameters
+    
+    def forward(self, x):
+        raise NotImplementedError
     
     def eval(self):
         self._eval = True
