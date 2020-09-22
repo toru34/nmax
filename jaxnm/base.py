@@ -47,7 +47,7 @@ class BaseModule:
         self._eval = True
         for name, var in vars(self).items():
             if isinstance(var, BaseModule):
-                get(self, name).eval()
+                getattr(self, name).eval()
     
     def train(self):
         self._eval = False
