@@ -53,7 +53,7 @@ class BaseModule:
         self._eval = False
         for name, var in vars(self).items():
             if isinstance(var, BaseModule):
-                get(self, name).train()
+                getattr(self, name).train()
     
     def tree_flatten(self):
         leaves = []
