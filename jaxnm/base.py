@@ -54,7 +54,38 @@ class BaseModule:
         for name, var in vars(self).items():
             if isinstance(var, BaseModule):
                 getattr(self, name).train()
+
+    def load_state_dict(self, state_dict):
+        module = self.__new__(self.__class__)
+
+        # TODO:
+        for name, var in self.__dict__.items():
+            if isinstance(var, BaseModule):
+                child_module = self.__dict__[name].load_state_dict(state_dict[name])
+                module.__dict__[name] = child_module
+            elif isinstance(var, jax.interpreters.xla.DeviceArray) or isinstance(var, jax.interpreters.partial_eval.JaxprTracer):
+                module.__dict__[name] = jnp.array(state_dict[name])
+            else:
+                # TODO:
+                module.__dict__[name] = state_dict[name]
+        
+        return module
     
+    def get_state_dict(self):
+        state_dict = {}
+
+        for name, var in self.__dict__.items():
+            if isinstance(var, BaseModule):
+                child_state_dict = var.get_state_dict()
+                state_dict[name] = child_state_dict
+            elif isinstance(var, jax.interpreters.xla.DeviceArray) or isinstance(var, jax.interpreters.partial_eval.JaxprTracer):
+                state_dict[name] = var
+            else:
+                # TODO:
+                state_dict[name] = var
+        
+        return state_dict
+
     def tree_flatten(self):
         leaves = []
         aux = []
