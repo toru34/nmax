@@ -1,6 +1,7 @@
 # toru34
 .DS_Store
 sandbox
+datasets
 .vscode
 
 # Byte-compiled / optimized / DLL files

@@ -2,6 +2,14 @@
 
 PyTorch-like neural network module system in JAX.
 
-## References
-- Parallax: https://github.com/srush/parallax
-- From PyTorch to JAX: https://sjmielke.com/jax-purify.htm
+The idea is borrowed from Parallax (https://github.com/srush/parallax. MIT License). The internal implementation is a bit different.
+
+## Instalation
+
+```shell
+pip install git+https://gitlab.com/toru34/jaxnm.git
+```
+
+## Example
+
+See examples/xor/xor.py

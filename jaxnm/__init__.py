@@ -1,1 +1,2 @@
-from jaxnm.base import BaseModule
+from jaxnm.module import Module
+from jaxnm.module import Parameter, Constant
