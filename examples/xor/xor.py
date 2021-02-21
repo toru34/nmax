@@ -26,6 +26,8 @@ def main():
         rng=jax.random.PRNGKey(34),
     )
 
+    grad_fn = jax.jit(jax.grad(loss_fn))
+
     for epoch in range(100):
         grads = grad_fn(model, x, y)
 
@@ -46,6 +48,9 @@ class Dense(Module):
     def __init__(self, in_dim, out_dim, rng):
         self.W = jax.random.normal(rng, (in_dim, out_dim))
         self.b = jnp.zeros(out_dim)
+    
+    def forward(self, x):
+        return x @ self.W + self.b
 
 
 class MLP(Module):
@@ -61,7 +66,7 @@ class MLP(Module):
     
     def forward(self, x):
         x = jnp.tanh(self.dense1(x))
-        return nn.sigmoid(x @ self.W + self.b)
+        return nn.sigmoid(self.dense2(x))
 
 if __name__ == '__main__':
     main()
