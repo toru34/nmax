@@ -2,7 +2,7 @@ import jax
 import jax.nn as nn
 import jax.numpy as jnp
 
-from jaxnm import Module, Parameter, Constant
+from nmax import Module, Parameter, Constant
 
 
 def main():

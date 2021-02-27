@@ -1,4 +1,4 @@
-# jaxnm
+# Nmax
 
 PyTorch-like neural network module system in JAX.
 
@@ -7,10 +7,10 @@ The idea is borrowed from Parallax (https://github.com/srush/parallax. MIT Licen
 ## Instalation
 
 ```shell
-pip clone https://github.com/toru34/jaxnm
-cd jaxnm
+pip clone https://github.com/toru34/nmax
+cd nmax
 python setup.py sdist bdist_wheel
-pip install ./dist/jaxnm-0.0.1.tar.gz
+pip install ./dist/nmax-0.0.1.tar.gz
 ```
 
 ## Example
