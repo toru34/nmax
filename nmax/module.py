@@ -34,8 +34,15 @@ class Module(metaclass=MetaModule):
         return self.forward(*args, **kwargs)
 
     def _register_fields(self):
+        modules = list() if 'modules' not in dir(self) else self.modules
+        parameters = list() if 'parameters' not in dir(self) else self.parameters
+        constants = list() if 'constants' not in dir(self) else self.constants
+
         modules, parameters, constants = list(), list(), list()
         for _name, _var in vars(self).items():
+            if _name in ('modules', 'parameters', 'constants'):
+                continue
+    
             if _name in self.__annotations__:
                 _type = self.__annotations__[_name]
             else:
@@ -53,6 +60,21 @@ class Module(metaclass=MetaModule):
         self.modules = tuple(modules)
         self.parameters = tuple(parameters)
         self.constants = tuple(constants)
+    
+    def add_module(self, name, module):
+        setattr(self, name, module)
+
+        self.modules = (name,) if 'modules' not in dir(self) else tuple(list(self.modules) + [name])
+    
+    def add_parameter(self, name, parameter):
+        setattr(self, name, parameter)
+
+        self.parameters = (name,) if 'parameters' not in dir(self) else tuple(list(self.parameters) + [name])
+    
+    def add_constant(self, name, constant):
+        setattr(self, name, constant)
+
+        self.constants = (name,) if 'constants' not in dir(self) else tuple(list(self.constants) + [name])
     
     def eval(self):
         self.mode = 'eval'
