@@ -18,14 +18,13 @@ class MetaModule(type):
 
         return instance
 
-
 @jax.tree_util.register_pytree_node_class
 class Module(metaclass=MetaModule):
 
-    mode: Literal['train', 'eval'] = 'train'
-    modules: tuple[str, ...]
-    parameters: tuple[str, ...]
-    constants: tuple[str, ...]
+    _mode: Literal['train', 'eval'] = 'train'
+    _modules: tuple[str, ...]
+    _parameters: tuple[str, ...]
+    _constants: tuple[str, ...]
 
     def __init_subclass__(cls):
         jax.tree_util.register_pytree_node_class(cls)
@@ -34,13 +33,12 @@ class Module(metaclass=MetaModule):
         return self.forward(*args, **kwargs)
 
     def _register_fields(self):
-        modules = list() if 'modules' not in dir(self) else self.modules
-        parameters = list() if 'parameters' not in dir(self) else self.parameters
-        constants = list() if 'constants' not in dir(self) else self.constants
+        _modules = list() if '_modules' not in dir(self) else self._modules
+        _parameters = list() if '_parameters' not in dir(self) else self._parameters
+        _constants = list() if '_constants' not in dir(self) else self._constants
 
-        modules, parameters, constants = list(), list(), list()
         for _name, _var in vars(self).items():
-            if _name in ('modules', 'parameters', 'constants'):
+            if _name in ('_modules', '_parameters', '_constants'):
                 continue
     
             if _name in self.__annotations__:
@@ -49,72 +47,72 @@ class Module(metaclass=MetaModule):
                 _type = Constant
             
             if _type == Module:
-                modules.append(_name)
+                _modules.append(_name)
             elif _type == Parameter:
-                parameters.append(_name)
+                _parameters.append(_name)
             elif _type == Constant:
-                constants.append(_name)
+                _constants.append(_name)
             else:
                 raise NotImplementedError
 
-        self.modules = tuple(modules)
-        self.parameters = tuple(parameters)
-        self.constants = tuple(constants)
+        self._modules = tuple(_modules)
+        self._parameters = tuple(_parameters)
+        self._constants = tuple(_constants)
     
     def add_module(self, name, module):
         setattr(self, name, module)
 
-        self.modules = (name,) if 'modules' not in dir(self) else tuple(list(self.modules) + [name])
+        self._modules = (name,) if '_modules' not in dir(self) else tuple(list(self._modules) + [name])
     
     def add_parameter(self, name, parameter):
         setattr(self, name, parameter)
 
-        self.parameters = (name,) if 'parameters' not in dir(self) else tuple(list(self.parameters) + [name])
+        self._parameters = (name,) if '_parameters' not in dir(self) else tuple(list(self._parameters) + [name])
     
     def add_constant(self, name, constant):
         setattr(self, name, constant)
 
-        self.constants = (name,) if 'constants' not in dir(self) else tuple(list(self.constants) + [name])
+        self._constants = (name,) if '_constants' not in dir(self) else tuple(list(self._constants) + [name])
     
     def eval(self):
-        self.mode = 'eval'
-        for name in self.modules:
+        self._mode = 'eval'
+        for name in self._modules:
             getattr(self, name).eval()
     
     def train(self):
-        self.mode = 'train'
-        for name in self.modules:
+        self._mode = 'train'
+        for name in self._modules:
             getattr(self, name).train()
 
     def tree_flatten(self):
         leaves = []
         aux = {
-            'mode': self.mode,
-            'modules': list(),
-            'parameters': list(),
-            'constants': list()
+            '_mode': self._mode,
+            '_modules': list(),
+            '_parameters': list(),
+            '_constants': list()
         }
 
-        for name in self.modules:
+        for name in self._modules:
             child_leaves, child_aux = getattr(self, name).tree_flatten()
             leaves += child_leaves
 
-            aux['modules'].append({
+            aux['_modules'].append({
                 'class': getattr(self, name).__class__,
                 'name': name,
                 'n_vars': len(child_leaves),
                 'aux': child_aux,
             })
         
-        for name in self.parameters:
+        for name in self._parameters:
             leaves.append(getattr(self, name))
 
-            aux['parameters'].append({
+            aux['_parameters'].append({
                 'name': name,
             })
         
-        for name in self.constants:
-            aux['constants'].append({
+        for name in self._constants:
+            aux['_constants'].append({
                 'name': name,
                 'value': getattr(self, name),
             })
@@ -127,7 +125,7 @@ class Module(metaclass=MetaModule):
 
         pointer = 0
 
-        for module_info in aux['modules']:
+        for module_info in aux['_modules']:
             child_leaves = leaves[pointer:pointer+module_info['n_vars']]
             child_aux = module_info['aux']
 
@@ -139,7 +137,7 @@ class Module(metaclass=MetaModule):
 
             pointer += module_info['n_vars']
         
-        for parameter_info in aux['parameters']:
+        for parameter_info in aux['_parameters']:
             setattr(
                 module,
                 parameter_info['name'],
@@ -148,15 +146,15 @@ class Module(metaclass=MetaModule):
 
             pointer += 1
         
-        for constant_info in aux['constants']:
+        for constant_info in aux['_constants']:
             setattr(
                 module,
                 constant_info['name'],
                 constant_info['value']
             )
         
-        # The following two lines must be in this order (so as not to register 'mode' as constant).
+        # The following two lines must be in this order (so as not to register '_mode' as constant).
         module._register_fields()
-        module.mode = aux['mode']
+        module._mode = aux['_mode']
         
         return module
