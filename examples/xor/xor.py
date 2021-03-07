@@ -12,7 +12,7 @@ def main():
         return loss.mean()
     
 
-    def sgd(param, grad, lr=1.0):
+    def sgd(param, grad, lr=4.0):
         return param - lr * grad
     
 
@@ -28,7 +28,7 @@ def main():
 
     grad_fn = jax.jit(jax.grad(loss_fn))
 
-    for epoch in range(100):
+    for epoch in range(40):
         grads = grad_fn(model, x, y)
 
         model = jax.tree_multimap(sgd, model, grads)
