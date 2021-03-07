@@ -1,6 +1,6 @@
 # toru34
 .DS_Store
-sandbox
+sandbox*
 datasets
 .vscode
 
