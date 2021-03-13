@@ -154,3 +154,14 @@ class Module(metaclass=MetaModule):
         module._mode = aux['_mode']
         
         return module
+
+
+class ModuleTuple(Module):
+    def __init__(self, module_tuple):
+        for i, module in enumerate(module_tuple):
+            self.add_module(f'module{i}', module)
+    
+    def forward(self, x):
+        for _module in self._modules:
+            x = getattr(self, _module)(x)
+        return x
