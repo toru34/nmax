@@ -18,6 +18,7 @@ class MetaModule(type):
 
         return instance
 
+
 @jax.tree_util.register_pytree_node_class
 class Module(metaclass=MetaModule):
 
@@ -33,9 +34,7 @@ class Module(metaclass=MetaModule):
         return self.forward(*args, **kwargs)
 
     def _register_fields(self):
-        _modules = list() if '_modules' not in dir(self) else self._modules
-        _parameters = list() if '_parameters' not in dir(self) else self._parameters
-        _constants = list() if '_constants' not in dir(self) else self._constants
+        _modules, _parameters, _constants = list(), list(), list()
 
         for _name, _var in vars(self).items():
             if _name in ('_modules', '_parameters', '_constants'):
@@ -47,11 +46,14 @@ class Module(metaclass=MetaModule):
                 _type = Constant
             
             if _type == Module:
-                _modules.append(_name)
+                if _name not in _modules:
+                    _modules.append(_name)
             elif _type == Parameter:
-                _parameters.append(_name)
+                if _name not in _parameters:
+                    _parameters.append(_name)
             elif _type == Constant:
-                _constants.append(_name)
+                if _name not in _constants:
+                    _constants.append(_name)
             else:
                 raise NotImplementedError
 
@@ -61,18 +63,15 @@ class Module(metaclass=MetaModule):
     
     def add_module(self, name, module):
         setattr(self, name, module)
-
-        self._modules = (name,) if '_modules' not in dir(self) else tuple(list(self._modules) + [name])
+        self.__annotations__[name] = Module
     
     def add_parameter(self, name, parameter):
         setattr(self, name, parameter)
-
-        self._parameters = (name,) if '_parameters' not in dir(self) else tuple(list(self._parameters) + [name])
+        self.__annotations__[name] = Parameter
     
     def add_constant(self, name, constant):
         setattr(self, name, constant)
-
-        self._constants = (name,) if '_constants' not in dir(self) else tuple(list(self._constants) + [name])
+        self.__annotations__[name] = Constant
     
     def eval(self):
         self._mode = 'eval'
@@ -129,28 +128,25 @@ class Module(metaclass=MetaModule):
             child_leaves = leaves[pointer:pointer+module_info['n_vars']]
             child_aux = module_info['aux']
 
-            setattr(
-                module,
-                module_info['name'],
-                module_info['class'].__new__(module_info['class']).tree_unflatten(child_aux, child_leaves)
+            module.add_module(
+                name=module_info['name'],
+                module=module_info['class'].__new__(module_info['class']).tree_unflatten(child_aux, child_leaves)
             )
 
             pointer += module_info['n_vars']
         
         for parameter_info in aux['_parameters']:
-            setattr(
-                module,
-                parameter_info['name'],
-                leaves[pointer]
+            module.add_parameter(
+                name=parameter_info['name'],
+                parameter=leaves[pointer],
             )
 
             pointer += 1
         
         for constant_info in aux['_constants']:
-            setattr(
-                module,
-                constant_info['name'],
-                constant_info['value']
+            module.add_constant(
+                name=constant_info['name'],
+                constant=constant_info['value'],
             )
         
         # The following two lines must be in this order (so as not to register '_mode' as constant).
