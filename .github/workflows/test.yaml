@@ -9,3 +9,8 @@ jobs:
     steps:
     - name: Print a greeting
       run: echo Hi from our first worlflow!
+    
+    - name: Show ASCII greeting
+      uses: mscountermarsh/ascii-art-action@master
+      with:
+        text: 'HELLO!'
