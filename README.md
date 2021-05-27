@@ -7,7 +7,7 @@ The idea is borrowed from Parallax (https://github.com/srush/parallax. MIT Licen
 ## Instalation
 
 ```shell
-pip clone https://github.com/toru34/nmax
+git clone https://github.com/toru34/nmax
 cd nmax
 python setup.py sdist bdist_wheel
 pip install ./dist/nmax-0.0.1.tar.gz
