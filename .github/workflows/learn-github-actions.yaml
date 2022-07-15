@@ -1,4 +1,4 @@
-name: lern-github-actions
+name: learn-github-actions
 
 on: [push]
 
@@ -12,3 +12,4 @@ jobs:
           node-version: '14'
       - run: npm install -g bats
       - run: bats -v
+      - run: ls -lah
