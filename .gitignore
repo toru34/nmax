@@ -1,8 +1,7 @@
 # toru34
-.DS_Store
-sandbox*
-datasets
+*.ipynb
 .vscode
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
