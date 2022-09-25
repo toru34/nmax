@@ -9,5 +9,5 @@ setuptools.setup(
     long_description=open('README.md', 'r').read(),
     url='https://github.com/toru34/nmax',
     packages=setuptools.find_packages(),
-    python_requires='>=3.9'
+    python_requires='>=3.10'
 )
