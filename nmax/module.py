@@ -10,6 +10,8 @@ Constant = Union[Any]
 
 class MetaModule(type):
     def __call__(cls, *args, **kwargs):
+        """
+        """
         instance = super(MetaModule, cls).__call__(*args, **kwargs)
 
         instance._register_fields()
@@ -28,22 +30,35 @@ class Module(metaclass=MetaModule):
     _constants: tuple[str, ...]
 
     def __init_subclass__(cls):
+        """
+        Register Module class as pytree node, enabling a recursive traverse.
+        This is needed to use jax.grad.
+
+        For jax.tree_util.register_pytree_node_class, see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.register_pytree_node_class.html.
+        For pytree in general, see https://jax.readthedocs.io/en/latest/pytrees.html#pytrees.
+        """
         jax.tree_util.register_pytree_node_class(cls)
     
     def __call__(self, *args, **kwargs):
+        """
+        Perform forward propagation.
+        """
         return self.forward(*args, **kwargs)
 
     def _register_fields(self):
+        """
+        TODO: add doc
+        """
         _modules, _parameters, _constants = list(), list(), list()
 
         for _name, _var in vars(self).items():
-            if _name in ('_modules', '_parameters', '_constants'):
+            if _name in ('_mode', '_modules', '_parameters', '_constants'):
                 continue
     
             if _name in self.__annotations__:
                 _type = self.__annotations__[_name]
             else:
-                _type = Constant
+                _type = Constant # TODO: ??? 下のnotimplementederrorとの関係は?
             
             if _type == Module:
                 if _name not in _modules:
@@ -62,30 +77,56 @@ class Module(metaclass=MetaModule):
         self._constants = tuple(_constants)
     
     def add_module(self, name, module):
+        """
+        TODO: add doc
+        """
         setattr(self, name, module)
         self.__annotations__[name] = Module
     
     def add_parameter(self, name, parameter):
+        """
+        TODO: add doc
+        """
         setattr(self, name, parameter)
         self.__annotations__[name] = Parameter
     
     def add_constant(self, name, constant):
+        """
+        TODO: add doc
+        """
         setattr(self, name, constant)
         self.__annotations__[name] = Constant
     
     def eval(self):
+        """
+        Switch from training mode to evaluation mode.
+        This often disables the randomness of forward pass, such as masking in dropout layer.
+        """
         self._mode = 'eval'
         for name in self._modules:
             getattr(self, name).eval()
     
     def train(self):
+        """
+        Switch from evaluation mode to training mode.
+        """
         self._mode = 'train'
         for name in self._modules:
             getattr(self, name).train()
+    
+    # def initialise_rng_key(self, key):
+    #     """
+    #     Initialise PRNG key used for generating random numbers in a forward pass (e.g. dropout).
+    #     """
+    #     self.key = key
 
     def tree_flatten(self):
+        """
+        TODO: add doc
+        """
         leaves = []
         aux = {
+            # 'key': self.key,
             '_mode': self._mode,
             '_modules': list(),
             '_parameters': list(),
@@ -120,6 +161,9 @@ class Module(metaclass=MetaModule):
 
     @classmethod
     def tree_unflatten(cls, aux, leaves):
+        """
+        TODO: add doc
+        """
         module = cls.__new__(cls)
 
         pointer = 0
@@ -149,19 +193,25 @@ class Module(metaclass=MetaModule):
                 constant=constant_info['value'],
             )
         
-        # The following two lines must be in this order (so as not to register '_mode' as constant).
+        # The following lines must be in this order (so as not to register '_mode' and 'key' as constant).
         module._register_fields()
         module._mode = aux['_mode']
-        
+
         return module
 
 
 class ModuleTuple(Module):
     def __init__(self, module_tuple):
+        """
+        TODO: add doc
+        """
         for i, module in enumerate(module_tuple):
             self.add_module(f'module{i}', module)
     
     def forward(self, x):
+        """
+        TODO: add doc
+        """
         for _module in self._modules:
             x = getattr(self, _module)(x)
         return x
