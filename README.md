@@ -2,7 +2,7 @@
 
 PyTorch-like neural network module system in JAX.
 
-The idea is borrowed from Parallax (https://github.com/srush/parallax. MIT License). The internal implementation is different.
+The idea is borrowed from Parallax (https://github.com/srush/parallax. MIT License). The implementation is different.
 
 ## Instalation
 
