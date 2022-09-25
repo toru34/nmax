@@ -47,7 +47,13 @@ class Module(metaclass=MetaModule):
 
     def _register_fields(self):
         """
-        TODO: add doc
+        Register each field (member) to appropriate list? based on their type annotations.
+
+        If no type annotation provided, it's considered to constant value and added to _constants.
+
+        _modules: TODO: add doc
+        _parameters: TODO: add doc
+        _constants: TODO: add doc
         """
         _modules, _parameters, _constants = list(), list(), list()
 
@@ -58,7 +64,7 @@ class Module(metaclass=MetaModule):
             if _name in self.__annotations__:
                 _type = self.__annotations__[_name]
             else:
-                _type = Constant # TODO: ??? 下のnotimplementederrorとの関係は?
+                _type = Constant # All member variable without type annotation are considered constant.
             
             if _type == Module:
                 if _name not in _modules:
@@ -70,7 +76,7 @@ class Module(metaclass=MetaModule):
                 if _name not in _constants:
                     _constants.append(_name)
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f"Type annotation for module member must be Module, Parameter, or Constant, but {_type} provided.")
 
         self._modules = tuple(_modules)
         self._parameters = tuple(_parameters)
