@@ -12,8 +12,8 @@ class Dense(Module):
     W: Parameter
     b: Parameter
 
-    def __init__(self, rng, in_dim, out_dim):
-        self.W = jax.random.normal(rng, (in_dim, out_dim))
+    def __init__(self, key, in_dim, out_dim):
+        self.W = jax.random.normal(key, (in_dim, out_dim))
         self.b = jnp.zeros(out_dim)
 
     def forward(self, x):
@@ -25,11 +25,11 @@ class MLP(Module):
     dense1: Module
     dense2: Module
 
-    def __init__(self, rng, in_dim, hid_dim, out_dim):
-        rngs = jax.random.split(rng)
+    def __init__(self, key, in_dim, hid_dim, out_dim):
+        keys = jax.random.split(key)
 
-        self.dense1 = Dense(rngs[0], in_dim, hid_dim)
-        self.dense2 = Dense(rngs[1], hid_dim, out_dim)
+        self.dense1 = Dense(keys[0], in_dim, hid_dim)
+        self.dense2 = Dense(keys[1], hid_dim, out_dim)
 
     def forward(self, x):
         x = jnp.tanh(self.dense1(x))
@@ -50,7 +50,7 @@ class TestXOR(unittest.TestCase):
         y = jnp.array([[0], [1], [1], [0]])
 
         model = MLP(
-            rng=jax.random.PRNGKey(34),
+            key=jax.random.PRNGKey(34),
             in_dim=2,
             hid_dim=2,
             out_dim=1

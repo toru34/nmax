@@ -23,7 +23,7 @@ def main():
         in_dim=2,
         hid_dim=2,
         out_dim=1,
-        rng=jax.random.PRNGKey(34),
+        key=jax.random.PRNGKey(34),
     )
 
     grad_fn = jax.jit(jax.grad(loss_fn))
@@ -45,8 +45,8 @@ class Dense(Module):
     W: Parameter
     b: Parameter
 
-    def __init__(self, in_dim, out_dim, rng):
-        self.W = jax.random.normal(rng, (in_dim, out_dim))
+    def __init__(self, in_dim, out_dim, key):
+        self.W = jax.random.normal(key, (in_dim, out_dim))
         self.b = jnp.zeros(out_dim)
     
     def forward(self, x):
@@ -58,11 +58,11 @@ class MLP(Module):
     dense1: Module
     dense2: Module
 
-    def __init__(self, in_dim, hid_dim, out_dim, rng):
-        rngs = jax.random.split(rng)
+    def __init__(self, in_dim, hid_dim, out_dim, key):
+        keys = jax.random.split(key)
 
-        self.dense1 = Dense(in_dim, hid_dim, rngs[0])
-        self.dense2 = Dense(hid_dim, out_dim, rngs[1])
+        self.dense1 = Dense(in_dim, hid_dim, keys[0])
+        self.dense2 = Dense(hid_dim, out_dim, keys[1])
     
     def forward(self, x):
         x = jnp.tanh(self.dense1(x))
