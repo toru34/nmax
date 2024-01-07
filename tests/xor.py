@@ -4,7 +4,7 @@ import jax
 import jax.nn as nn
 import jax.numpy as jnp
 
-from nmax import Module, Parameter, Constant
+from nmax import Module, Parameter
 
 
 class Dense(Module):
@@ -61,7 +61,7 @@ class TestXOR(unittest.TestCase):
         for epoch in range(40):
             grads = grad_fn(model, x, y)
 
-            model = jax.tree_multimap(sgd, model, grads)
+            model = jax.tree_util.tree_map(sgd, model, grads)
 
             if (epoch + 1) % 10 == 0:
                 loss = loss_fn(model, x, y)

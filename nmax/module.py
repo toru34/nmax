@@ -4,8 +4,8 @@ import jax
 import jax.numpy as jnp
 
 
-Parameter = Union[jax.interpreters.xla.DeviceArray, jax.interpreters.partial_eval.JaxprTracer]
-Constant = Union[Any]
+Parameter = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer]
+Constant = Any
 
 
 class MetaModule(type):
