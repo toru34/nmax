@@ -110,7 +110,6 @@ class Module(metaclass=MetaModule):
         self._mode = "eval"
         for name in self._modules:
             getattr(self, name).eval()
-    
     def train(self):
         """
         Switch from evaluation mode to training mode.
@@ -145,7 +144,7 @@ class Module(metaclass=MetaModule):
             "_mode": self._mode,
             "_modules": list(),
             "_parameters": list(),
-            "_constants": list()
+            "_constants": list(),
         }
 
         for name in self._modules:
@@ -197,7 +196,6 @@ class Module(metaclass=MetaModule):
             )
 
             pointer += module_info["n_vars"]
-        
         for parameter_info in aux["_parameters"]:
             module.add_parameter(
                 name=parameter_info["name"],
@@ -205,13 +203,11 @@ class Module(metaclass=MetaModule):
             )
 
             pointer += 1
-        
         for constant_info in aux["_constants"]:
             module.add_constant(
                 name=constant_info["name"],
                 constant=constant_info["value"],
             )
-        
         module._register_fields()
 
         return module
@@ -224,7 +220,6 @@ class ModuleTuple(Module):
         """
         for i, module in enumerate(module_tuple):
             self.add_module(f"module{i}", module)
-    
     def forward(self, x):
         """
         TODO: add doc
