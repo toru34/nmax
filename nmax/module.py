@@ -16,7 +16,7 @@ class MetaModule(type):
 
         instance._register_fields()
 
-        assert 'forward' in dir(instance), f'forward function must be implemented in {instance.__class__}'
+        assert "forward" in dir(instance), f"forward function must be implemented in {instance.__class__}"
 
         return instance
 
@@ -107,7 +107,7 @@ class Module(metaclass=MetaModule):
         Switch from training mode to evaluation mode.
         This often disables the randomness of forward pass, such as masking in dropout layer.
         """
-        self._mode = 'eval'
+        self._mode = "eval"
         for name in self._modules:
             getattr(self, name).eval()
     
@@ -142,34 +142,34 @@ class Module(metaclass=MetaModule):
         """
         leaves = []
         aux = {
-            '_mode': self._mode,
-            '_modules': list(),
-            '_parameters': list(),
-            '_constants': list()
+            "_mode": self._mode,
+            "_modules": list(),
+            "_parameters": list(),
+            "_constants": list()
         }
 
         for name in self._modules:
             child_leaves, child_aux = getattr(self, name).tree_flatten()
             leaves += child_leaves
 
-            aux['_modules'].append({
-                'class': getattr(self, name).__class__,
-                'name': name,
-                'n_vars': len(child_leaves),
-                'aux': child_aux,
+            aux["_modules"].append({
+                "class": getattr(self, name).__class__,
+                "name": name,
+                "n_vars": len(child_leaves),
+                "aux": child_aux,
             })
         
         for name in self._parameters:
             leaves.append(getattr(self, name))
 
-            aux['_parameters'].append({
-                'name': name,
+            aux["_parameters"].append({
+                "name": name,
             })
         
         for name in self._constants:
-            aux['_constants'].append({
-                'name': name,
-                'value': getattr(self, name),
+            aux["_constants"].append({
+                "name": name,
+                "value": getattr(self, name),
             })
 
         return leaves, aux
@@ -192,24 +192,24 @@ class Module(metaclass=MetaModule):
                 key = jax.random.split(key, num=1)[0]
 
             module.add_module(
-                name=module_info['name'],
-                module=module_info['class'].__new__(module_info['class']).tree_unflatten(child_aux, child_leaves, key)
+                name=module_info["name"],
+                module=module_info["class"].__new__(module_info["class"]).tree_unflatten(child_aux, child_leaves, key)
             )
 
-            pointer += module_info['n_vars']
+            pointer += module_info["n_vars"]
         
-        for parameter_info in aux['_parameters']:
+        for parameter_info in aux["_parameters"]:
             module.add_parameter(
-                name=parameter_info['name'],
+                name=parameter_info["name"],
                 parameter=leaves[pointer],
             )
 
             pointer += 1
         
-        for constant_info in aux['_constants']:
+        for constant_info in aux["_constants"]:
             module.add_constant(
-                name=constant_info['name'],
-                constant=constant_info['value'],
+                name=constant_info["name"],
+                constant=constant_info["value"],
             )
         
         module._register_fields()
@@ -223,7 +223,7 @@ class ModuleTuple(Module):
         TODO: add doc
         """
         for i, module in enumerate(module_tuple):
-            self.add_module(f'module{i}', module)
+            self.add_module(f"module{i}", module)
     
     def forward(self, x):
         """
