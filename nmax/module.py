@@ -1,11 +1,11 @@
 from typing import Any, Union, Literal
 
 import jax
-import jax.numpy as jnp
 
 
 Parameter = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer]
 Constant = Any
+RandomState = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer, None]
 
 
 class MetaModule(type):
@@ -16,15 +16,15 @@ class MetaModule(type):
 
         instance._register_fields()
 
-        assert 'forward' in dir(instance), f'forward function must be implemented in {instance.__class__}'
+        assert "forward" in dir(instance), f"forward function must be implemented in {instance.__class__}"
 
         return instance
 
 
 @jax.tree_util.register_pytree_node_class
 class Module(metaclass=MetaModule):
-
-    _mode: Literal['train', 'eval'] = 'train'
+    _key: RandomState = None
+    _mode: Literal["train", "eval"] = "train"
     _modules: tuple[str, ...]
     _parameters: tuple[str, ...]
     _constants: tuple[str, ...]
@@ -58,9 +58,8 @@ class Module(metaclass=MetaModule):
         _modules, _parameters, _constants = list(), list(), list()
 
         for _name, _var in vars(self).items():
-            if _name in ('_mode', '_modules', '_parameters', '_constants'):
+            if _name in ("_key", "_mode", "_modules", "_parameters", "_constants"):
                 continue
-    
             if _name in self.__annotations__:
                 _type = self.__annotations__[_name]
             else:
@@ -81,7 +80,7 @@ class Module(metaclass=MetaModule):
         self._modules = tuple(_modules)
         self._parameters = tuple(_parameters)
         self._constants = tuple(_constants)
-    
+
     def add_module(self, name, module):
         """
         TODO: add doc
@@ -108,23 +107,34 @@ class Module(metaclass=MetaModule):
         Switch from training mode to evaluation mode.
         This often disables the randomness of forward pass, such as masking in dropout layer.
         """
-        self._mode = 'eval'
+        self._mode = "eval"
         for name in self._modules:
             getattr(self, name).eval()
-    
+
     def train(self):
         """
         Switch from evaluation mode to training mode.
         """
-        self._mode = 'train'
+        self._mode = "train"
         for name in self._modules:
             getattr(self, name).train()
-    
-    # def initialise_rng_key(self, key):
-    #     """
-    #     Initialise PRNG key used for generating random numbers in a forward pass (e.g. dropout).
-    #     """
-    #     self.key = key
+
+    def get_random_state(self) -> RandomState:
+        """
+        TODO: add doc
+        """
+        assert isinstance(
+            self._key, RandomState
+        ), "Random state has not been initialised."
+        return self._key
+
+    def initialise_random_state(self, key: RandomState):
+        """
+        Initialise every module's random state recursively and return a newly initialised one.
+        """
+        leaves, aux = self.tree_flatten()
+
+        return self.tree_unflatten(aux, leaves, key)
 
     def tree_flatten(self):
         """
@@ -132,76 +142,74 @@ class Module(metaclass=MetaModule):
         """
         leaves = []
         aux = {
-            # 'key': self.key,
-            '_mode': self._mode,
-            '_modules': list(),
-            '_parameters': list(),
-            '_constants': list()
+            "_mode": self._mode,
+            "_modules": list(),
+            "_parameters": list(),
+            "_constants": list(),
         }
 
         for name in self._modules:
             child_leaves, child_aux = getattr(self, name).tree_flatten()
             leaves += child_leaves
 
-            aux['_modules'].append({
-                'class': getattr(self, name).__class__,
-                'name': name,
-                'n_vars': len(child_leaves),
-                'aux': child_aux,
+            aux["_modules"].append({
+                "class": getattr(self, name).__class__,
+                "name": name,
+                "n_vars": len(child_leaves),
+                "aux": child_aux,
             })
         
         for name in self._parameters:
             leaves.append(getattr(self, name))
 
-            aux['_parameters'].append({
-                'name': name,
+            aux["_parameters"].append({
+                "name": name,
             })
         
         for name in self._constants:
-            aux['_constants'].append({
-                'name': name,
-                'value': getattr(self, name),
+            aux["_constants"].append({
+                "name": name,
+                "value": getattr(self, name),
             })
 
         return leaves, aux
 
     @classmethod
-    def tree_unflatten(cls, aux, leaves):
+    def tree_unflatten(cls, aux, leaves, key=None):
         """
         TODO: add doc
         """
         module = cls.__new__(cls)
 
         pointer = 0
+        module._key = key
 
-        for module_info in aux['_modules']:
-            child_leaves = leaves[pointer:pointer+module_info['n_vars']]
-            child_aux = module_info['aux']
+        for module_info in aux["_modules"]:
+            child_leaves = leaves[pointer : pointer + module_info["n_vars"]]
+            child_aux = module_info["aux"]
+
+            if key is not None:
+                key = jax.random.split(key, num=1)[0]
 
             module.add_module(
-                name=module_info['name'],
-                module=module_info['class'].__new__(module_info['class']).tree_unflatten(child_aux, child_leaves)
+                name=module_info["name"],
+                module=module_info["class"].__new__(module_info["class"]).tree_unflatten(child_aux, child_leaves, key)
             )
 
-            pointer += module_info['n_vars']
-        
-        for parameter_info in aux['_parameters']:
+            pointer += module_info["n_vars"]
+        for parameter_info in aux["_parameters"]:
             module.add_parameter(
-                name=parameter_info['name'],
+                name=parameter_info["name"],
                 parameter=leaves[pointer],
             )
 
             pointer += 1
-        
-        for constant_info in aux['_constants']:
+        for constant_info in aux["_constants"]:
             module.add_constant(
-                name=constant_info['name'],
-                constant=constant_info['value'],
+                name=constant_info["name"],
+                constant=constant_info["value"],
             )
-        
-        # The following lines must be in this order (so as not to register '_mode' and 'key' as constant).
         module._register_fields()
-        module._mode = aux['_mode']
 
         return module
 
@@ -212,8 +220,8 @@ class ModuleTuple(Module):
         TODO: add doc
         """
         for i, module in enumerate(module_tuple):
-            self.add_module(f'module{i}', module)
-    
+            self.add_module(f"module{i}", module)
+
     def forward(self, x):
         """
         TODO: add doc
