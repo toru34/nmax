@@ -7,6 +7,7 @@ Parameter = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer]
 Constant = Any
 RandomState = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer, None]
 
+
 class MetaModule(type):
     def __call__(cls, *args, **kwargs):
         """
@@ -22,9 +23,8 @@ class MetaModule(type):
 
 @jax.tree_util.register_pytree_node_class
 class Module(metaclass=MetaModule):
-
     _key: RandomState = None
-    _mode: Literal['train', 'eval'] = 'train'
+    _mode: Literal["train", "eval"] = "train"
     _modules: tuple[str, ...]
     _parameters: tuple[str, ...]
     _constants: tuple[str, ...]
@@ -58,9 +58,8 @@ class Module(metaclass=MetaModule):
         _modules, _parameters, _constants = list(), list(), list()
 
         for _name, _var in vars(self).items():
-            if _name in ('_key', '_mode', '_modules', '_parameters', '_constants'):
+            if _name in ("_key", "_mode", "_modules", "_parameters", "_constants"):
                 continue
-    
             if _name in self.__annotations__:
                 _type = self.__annotations__[_name]
             else:
@@ -116,7 +115,7 @@ class Module(metaclass=MetaModule):
         """
         Switch from evaluation mode to training mode.
         """
-        self._mode = 'train'
+        self._mode = "train"
         for name in self._modules:
             getattr(self, name).train()
 
@@ -124,7 +123,9 @@ class Module(metaclass=MetaModule):
         """
         TODO: add doc
         """
-        assert isinstance(self._key, RandomState), 'Random state has not been initialised.'
+        assert isinstance(
+            self._key, RandomState
+        ), "Random state has not been initialised."
         return self._key
 
     def initialise_random_state(self, key: RandomState):
@@ -183,9 +184,9 @@ class Module(metaclass=MetaModule):
         pointer = 0
         module._key = key
 
-        for module_info in aux['_modules']:
-            child_leaves = leaves[pointer:pointer+module_info['n_vars']]
-            child_aux = module_info['aux']
+        for module_info in aux["_modules"]:
+            child_leaves = leaves[pointer : pointer + module_info["n_vars"]]
+            child_aux = module_info["aux"]
 
             if key is not None:
                 key = jax.random.split(key, num=1)[0]
