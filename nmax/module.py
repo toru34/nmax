@@ -1,12 +1,11 @@
 from typing import Any, Union, Literal
 
 import jax
-import jax.numpy as jnp
 
 
 Parameter = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer]
 Constant = Any
-
+RandomState = Union[jax.Array, jax.interpreters.partial_eval.JaxprTracer, None]
 
 class MetaModule(type):
     def __call__(cls, *args, **kwargs):
@@ -24,6 +23,7 @@ class MetaModule(type):
 @jax.tree_util.register_pytree_node_class
 class Module(metaclass=MetaModule):
 
+    _key: RandomState = None
     _mode: Literal['train', 'eval'] = 'train'
     _modules: tuple[str, ...]
     _parameters: tuple[str, ...]
@@ -58,7 +58,7 @@ class Module(metaclass=MetaModule):
         _modules, _parameters, _constants = list(), list(), list()
 
         for _name, _var in vars(self).items():
-            if _name in ('_mode', '_modules', '_parameters', '_constants'):
+            if _name in ('_key', '_mode', '_modules', '_parameters', '_constants'):
                 continue
     
             if _name in self.__annotations__:
@@ -81,7 +81,7 @@ class Module(metaclass=MetaModule):
         self._modules = tuple(_modules)
         self._parameters = tuple(_parameters)
         self._constants = tuple(_constants)
-    
+
     def add_module(self, name, module):
         """
         TODO: add doc
@@ -119,12 +119,21 @@ class Module(metaclass=MetaModule):
         self._mode = 'train'
         for name in self._modules:
             getattr(self, name).train()
-    
-    # def initialise_rng_key(self, key):
-    #     """
-    #     Initialise PRNG key used for generating random numbers in a forward pass (e.g. dropout).
-    #     """
-    #     self.key = key
+
+    def get_random_state(self) -> RandomState:
+        """
+        TODO: add doc
+        """
+        assert isinstance(self._key, RandomState), 'Random state has not been initialised.'
+        return self._key
+
+    def initialise_random_state(self, key: RandomState):
+        """
+        Initialise every module's random state recursively and return a newly initialised one.
+        """
+        leaves, aux = self.tree_flatten()
+
+        return self.tree_unflatten(aux, leaves, key)
 
     def tree_flatten(self):
         """
@@ -132,7 +141,6 @@ class Module(metaclass=MetaModule):
         """
         leaves = []
         aux = {
-            # 'key': self.key,
             '_mode': self._mode,
             '_modules': list(),
             '_parameters': list(),
@@ -166,21 +174,25 @@ class Module(metaclass=MetaModule):
         return leaves, aux
 
     @classmethod
-    def tree_unflatten(cls, aux, leaves):
+    def tree_unflatten(cls, aux, leaves, key=None):
         """
         TODO: add doc
         """
         module = cls.__new__(cls)
 
         pointer = 0
+        module._key = key
 
         for module_info in aux['_modules']:
             child_leaves = leaves[pointer:pointer+module_info['n_vars']]
             child_aux = module_info['aux']
 
+            if key is not None:
+                key = jax.random.split(key, num=1)[0]
+
             module.add_module(
                 name=module_info['name'],
-                module=module_info['class'].__new__(module_info['class']).tree_unflatten(child_aux, child_leaves)
+                module=module_info['class'].__new__(module_info['class']).tree_unflatten(child_aux, child_leaves, key)
             )
 
             pointer += module_info['n_vars']
@@ -199,9 +211,7 @@ class Module(metaclass=MetaModule):
                 constant=constant_info['value'],
             )
         
-        # The following lines must be in this order (so as not to register '_mode' and 'key' as constant).
         module._register_fields()
-        module._mode = aux['_mode']
 
         return module
 
