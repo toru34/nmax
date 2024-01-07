@@ -15,3 +15,12 @@ jobs:
         uses: reviewdog/action-suggester@v1
         with:
           tool_name: ruff
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkt out repository code
+        uses: actions/checkout@v4
+      - name: Run black
+        uses: reviewdog/action-black@v3
+        with:
+          reporter: github-pr-review
