@@ -110,6 +110,7 @@ class Module(metaclass=MetaModule):
         self._mode = "eval"
         for name in self._modules:
             getattr(self, name).eval()
+
     def train(self):
         """
         Switch from evaluation mode to training mode.
@@ -220,6 +221,7 @@ class ModuleTuple(Module):
         """
         for i, module in enumerate(module_tuple):
             self.add_module(f"module{i}", module)
+
     def forward(self, x):
         """
         TODO: add doc
